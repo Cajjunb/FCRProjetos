@@ -29,11 +29,11 @@ target_link_libraries(gazebo_sonar ${catkin_LIBRARIES})
 # add_executable(forward_kinematics_pioneer src/forward_kinematics_pioneer.cpp)
 # target_link_libraries(forward_kinematics_pioneer ${catkin_LIBRARIES})
 
-add_executable(obstacle_avoidance_node src/obstacle_avoidance_node.cpp src/obstacle_avoidance.cpp)
+add_executable(obstacle_avoidance_node src/obstacle_avoidance_node.cpp src/obstacle_avoidance.cpp src/vetor.cpp)
 target_link_libraries(obstacle_avoidance_node ${catkin_LIBRARIES})
 
 
-add_executable(odometria_campo_node src/odometria_campo_node.cpp src/odometria_campo.cpp src/graph.cpp)
+add_executable(odometria_campo_node src/odometria_campo_node.cpp src/odometria_campo.cpp src/graph.cpp src/vetor.cpp)
 target_link_libraries(odometria_campo_node ${catkin_LIBRARIES})
 
 # add_executable(pwm_quad src/pwm_quad.cpp)

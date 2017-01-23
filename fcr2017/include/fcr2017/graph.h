@@ -27,7 +27,6 @@ class  Node{
         double y;
         bool visitado;
         double distanciaTentada;
-       
     public:
         list<Aresta*> *vizinhos;
         // Construtor Grafo sozinho
@@ -43,6 +42,7 @@ class  Node{
         double  gety();
         double  getDistanciaTentada();
         void    setDistanciaTentada(double distancia);
+        Node    *prevDijkstra;
         static bool    comparaNodes( Node* primeiro, Node* segundo);
 
 };
@@ -78,7 +78,7 @@ public:
     bool addAresta(int id1, int id2,double distancia);
     Aresta* getAresta(int idAlvo1,int idAlvo2);
     Node* getNode(int idNode);
-    list<int> algoritmoDijkstra(int idCorrente,int idAlvo);
+    list<Node*> *algoritmoDijkstra(int idCorrente,int idAlvo);
    
     /* data */
 };

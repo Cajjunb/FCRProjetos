@@ -1,6 +1,6 @@
 //INCLUDE GUARD
-#ifndef MOD_AVOID
-#define MOD_AVOID
+#ifndef MOD_ODOM
+#define MOD_ODOM
 #include <stdio.h>
 #include <vector>
 #include <string>
@@ -16,24 +16,32 @@
 //INCLUDE TFs para utilizar o angulo de odometria do robo
 #include <tf/tf.h>
 #include <tf/transform_datatypes.h>
+//vetor
+//grafo
+#include "vetor.h"
+#include "graph.h"
 
 
 #define ANGULOS_POR_GRUPO 80
 #define NRO_GRUPOS 9
 #define TEMPO_POR_SPIN 0.005
-#define CONSTANTE_FORCA 15
-#define CONSTANTE_VELOCIDADE 2000
-#define VELOCIDADE_MAXIMA_LINEAR 3
-#define VELOCIDADE_MAXIMA_ANGULAR 3
+#define CONSTANTE_FORCA 20
+#define CONSTANTE_DESVIO 2.5
+#define VELOCIDADE_MAXIMA_LINEAR 10
+#define VELOCIDADE_MAXIMA_ANGULAR 4
 #define PESO_ROBO 1
-#define RAIO_ROBO 1.2
-#define RANGE_ERRO 0.05
+#define RAIO_ROBO 1.4
+#define RANGE_ERRO 0.1
+#define NODE_INICIAL 8
+#define RANGE_SEGURANCA_MAX 0.5
+#define RANGE_SEGURANCA_MIN 1.5
 
 using namespace std;
 
-class OdometriaCampo
-{
+class OdometriaCampo{
 public:
+    // VETOR GLOBAL DE VETORES DO CAMPO OBSTACLE AVOIDANCE
+    static Vetor vetorResultante;
     void spin();
     void setParametros(float x,float y);
     OdometriaCampo(ros::NodeHandle nh);
@@ -60,6 +68,7 @@ private:
     void poseCallback(const nav_msgs::Odometry::ConstPtr& pose_msg);
 
     bool algorithm();
+    void desvieObstaculo();
 };
 
 

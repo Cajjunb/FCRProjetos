@@ -1,16 +1,9 @@
 
-#include "vetor.h"
+#include "fcr2017/vetor.h"
 
 
-//Classe objeto vetor fisico para soma vetorial
-class Vetor{
-	public: double angulo;
-	public: double componente_x;
-	public: double componente_y;
-	public: double componente_z ;
-	public: double modulo;
 
-	Vetor(){
+	Vetor::Vetor(){
 		this->angulo = 0;
 		this->componente_x = 0;
 		this->componente_y = 0;
@@ -19,7 +12,7 @@ class Vetor{
 	}
 
 
-	Vetor(double angulo,double modulo,bool inverso ){
+	Vetor::Vetor(double angulo,double modulo,bool inverso ){
 		int inv ;
 		// Criar vetor inverso ou nao
 		if(inverso)
@@ -33,7 +26,7 @@ class Vetor{
 		this->modulo;
 	}
 
-	Vetor(double x,double y,double z ,bool inverso ){
+	Vetor::Vetor(double x,double y,double z ,bool inverso ){
 		int inv ;
 		// Criar vetor inverso ou nao
 		if(inverso)
@@ -47,7 +40,7 @@ class Vetor{
 
 
 
-	void setAngulo(double angulo,double modulo){
+	void Vetor::setAngulo(double angulo,double modulo){
 		this->angulo = angulo;
 		this->componente_x = cos (angulo) * modulo;
 		this->componente_y = sin (angulo) * modulo;
@@ -55,25 +48,25 @@ class Vetor{
 	}
 
 
-	void multiplicarEscalar(double escalar){
+	void Vetor::multiplicarEscalar(double escalar){
 		this->componente_x *= escalar ; 
 		this->componente_y *= escalar;
 		this->componente_z *= escalar;
 	}
 
-	void setComponentes(double componente_x ,double componente_y, double modulo){
+	void Vetor::setComponentes(double componente_x ,double componente_y, double modulo){
 		this->componente_x =componente_x * modulo;
 		this->componente_y =componente_y * modulo;
 		return;
 	}
 
-	void somaVetorial(Vetor *v2){
+	void Vetor::somaVetorial(Vetor *v2){
 		this->componente_x += v2->componente_x;
 		this->componente_y += v2->componente_y;
 		return;
 	}
 
-	void somaVetorial(double angulo,double modulo, bool inverso){
+	void Vetor::somaVetorial(double angulo,double modulo, bool inverso){
 		int inv ;
 		// Criar vetor inverso ou nao
 		if(inverso)
@@ -89,12 +82,12 @@ class Vetor{
 		this->modulo;
 	}
 
-	void setComponenteZ(double z){
+	void Vetor::setComponenteZ(double z){
 		this->componente_z = z;
 	}
 
 
-	void produtoVetorial(double x2,double y2,double z2){
+	void Vetor::produtoVetorial(double x2,double y2,double z2){
 		double x1 = this->componente_x;
 		double y1 = this->componente_y;
 		double z1 = this->componente_z;
@@ -104,7 +97,6 @@ class Vetor{
 		return;
 	}
 
-};
  
 
 

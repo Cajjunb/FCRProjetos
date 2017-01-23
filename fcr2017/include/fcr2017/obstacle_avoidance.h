@@ -11,7 +11,7 @@
 #include <p2os_msgs/SonarArray.h>
 #include <nav_msgs/Odometry.h>
 //Include vetor
-#include "vetor.cpp"
+#include "vetor.h"
 //Include vector de vetores
 #include <vector>
 

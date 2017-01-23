@@ -1,4 +1,3 @@
-
 #include "fcr2017/graph.h"
 
 
@@ -9,6 +8,7 @@ void Aresta::printAresta(){
     cout    << "\t Aresta" 
             << "\t node 1  id =" << node1->getId()
             << "\t node 2  id =" << node2->getId()
+            << "\t distancia  =" << this->distancia
             << "\n";
 }
 
@@ -84,6 +84,7 @@ bool Grafo::addAresta(int id1, int id2,double distancia){
     Aresta *arestaNovo = new Aresta(aux1,aux2,distancia);
     aux1->vizinhos->push_back(arestaNovo);
     aux2->vizinhos->push_back(arestaNovo);
+    this->listaArestas.push_back(arestaNovo);
     this->nroArestas++;
     return true;
 }
@@ -97,12 +98,12 @@ void Grafo::printaGrafo(){
     }
 }
 
-list<int> Grafo::algoritmoDijkstra(int idCorrente,int idAlvo){
+list<Node*> *Grafo::algoritmoDijkstra(int idCorrente,int idAlvo){
     //Lista de inteiros inteiro com o caminho a ser retornado
     //Set de grafos nao visitados auxiliar
     // NODE CORRENTE AUXILIAR
     // Auxiliar calculo da distancia
-    list<int> *caminho = new list<int>;
+    list<Node*> *caminho = new list<Node*>;
     list<Node*> naoVisitados ;
     list<Node*> visitados ;
     list<Node*> *vizinhosVisitado ;
@@ -111,6 +112,7 @@ list<int> Grafo::algoritmoDijkstra(int idCorrente,int idAlvo){
     //seta todos os nodes nao visitados e distancia tentada ifinita 
     for (list<Node*>::iterator it=listaNodes.begin();it!=listaNodes.end();++it){
        (*it)->setVisitado(false);
+       (*it)->prevDijkstra = NULL;
        naoVisitados.push_back(*it);
        (*it)->setDistanciaTentada(INFINITE);
     }
@@ -121,18 +123,41 @@ list<int> Grafo::algoritmoDijkstra(int idCorrente,int idAlvo){
     nodeCorrente->setDistanciaTentada(0);
     naoVisitados.remove(nodeCorrente);
     visitados.push_back(nodeCorrente);
-    vizinhosVisitado = nodeCorrente->getNodesVizinhos();
-    //Verificando as possiveis tentativas
-    for (list<Node*>::iterator it=vizinhosVisitado->begin();it!=vizinhosVisitado->end();++it){
-        //Calcula a distancia tentativa, distancia atual + distancia da aresta
-        //Caso seja menor que a ja calculada naquele node nao faca nada
-        distanciaAux =  nodeCorrente->getDistanciaTentada() + this->getAresta(nodeCorrente->getId(), (*it)->getId())->getDistancia();
-        if(distanciaAux < (*it)->getDistanciaTentada()){
-            (*it)->setDistanciaTentada(distanciaAux);
+    //Enquanto nao testamos todos ou nao encontramos o node alvo
+    while(!naoVisitados.empty()&& !nodeCorrente->idIgual(idAlvo)){
+        vizinhosVisitado = nodeCorrente->getNodesVizinhos();
+        //Verificando as possiveis tentativas
+        for (list<Node*>::iterator it=vizinhosVisitado->begin();it!=vizinhosVisitado->end();++it){
+            //Calcula a distancia tentativa, distancia atual + distancia da aresta
+            //Caso seja menor que a ja calculada naquele node nao faca nada
+            distanciaAux =  nodeCorrente->getDistanciaTentada() + (*this->getAresta(nodeCorrente->getId(), (*it)->getId())).getDistancia();
+            if(distanciaAux < (*it)->getDistanciaTentada()){
+                (*it)->setDistanciaTentada(distanciaAux);
+                (*it)->prevDijkstra = nodeCorrente;
+            }
+        }
+        //Da sort colocando os nodes com menor distancia primeiro
+        naoVisitados.sort(Node::comparaNodes);
+        nodeCorrente = (*naoVisitados.begin());
+        nodeCorrente->setVisitado(true);
+        naoVisitados.remove(nodeCorrente);
+        visitados.push_back(nodeCorrente);
+    }
+    //SE O ULTIMO NODE CORRENTE NAO EH O ALVO PQ NAO FOI ACHADO
+    if(!nodeCorrente->idIgual(idAlvo)){
+        delete caminho;
+        caminho = NULL;
+    }
+    else{
+        //Coloca se no topo da pilha e mantem colocando ate que o proximo seja null
+        //Final coloca se o primeiro 
+        while(nodeCorrente->prevDijkstra != NULL){
+            caminho->push_front(nodeCorrente);
+            nodeCorrente = nodeCorrente->prevDijkstra;
         }
     }
-    //Da sort colocando os nodes com menor distancia primeiro
-    naoVisitados.sort(Node::comparaNodes);
+    //RETORNA RESULTADO
+    return caminho;
 }
 
 // Funcao que retorna um node do grafo a partir do id dele
@@ -201,16 +226,8 @@ void Node::printNode(){
 list <Node*> * Node::getNodesVizinhos(){
     list<Node*> *listaVizinhos = new list<Node*>;
     for (list<Aresta*>::iterator it=vizinhos->begin();it!=vizinhos->end();++it){
-        /*debug*/ cout <<"\tINSERI UM!\n"; 
         listaVizinhos->push_back((*it)->getVizinho(this->id)); 
     }
-    /*debug*/cout << "\tLISTA DE VIZINHOS\n";
-    for (list<Node*>::iterator it=listaVizinhos->begin();it!=listaVizinhos->end();++it){
-        (*it)->printNode();
-        /*debug*/cout << "\tproximovizinho\n";
-    
-    }
-    /*debug*/getchar();
     return listaVizinhos;
 }
 
