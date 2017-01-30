@@ -49,7 +49,7 @@ void ObstacleAvoidance::algorithm(){
     //boolean
     bool emergence_state = false;
     //Feito para nao quebrar o codigo
-    for (int i = (ANGULOS_POR_GRUPO*1)-1; i < nro_angulos - ANGULOS_POR_GRUPO*1; ++i ,++j){
+    for (int i = (ANGULOS_POR_GRUPO*2)-1; i < nro_angulos - ANGULOS_POR_GRUPO*2; ++i ,++j){
       /*debug*///cout <<"\t range ="<<  this->scan_msg_.ranges[i]<< "\t angulo = " <<  (this->scan_msg_.angle_min + ( i * this->scan_msg_.angle_increment )*180 )
       //                                                          / M_PI <<" \n";
       // Testa se eh a minima distancia e esta no intervalor ainda do subgrupo

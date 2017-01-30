@@ -36,6 +36,9 @@ target_link_libraries(obstacle_avoidance_node ${catkin_LIBRARIES})
 add_executable(odometria_campo_node src/odometria_campo_node.cpp src/odometria_campo.cpp src/graph.cpp src/vetor.cpp)
 target_link_libraries(odometria_campo_node ${catkin_LIBRARIES})
 
+add_executable(mapeamento_node src/mapeamento_node.cpp src/mapeamento.cpp src/graphMap.cpp src/vetor.cpp src/mapa.cpp)
+target_link_libraries(mapeamento_node ${catkin_LIBRARIES})
+
 # add_executable(pwm_quad src/pwm_quad.cpp)
 # target_link_libraries(pwm_quad ${catkin_LIBRARIES})
 #add_executable(forward_kinematics_pioneer src/forward_kinematics_pioneer.cpp)

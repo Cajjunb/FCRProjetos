@@ -91,8 +91,13 @@ bool OdometriaCampo::algorithm(){
         final_state2 = true;
     }
     //EVITANDO A RE
-    if(abs(new_linear_vel) < 0)
-        new_angular_vel += 0.05;
+    if(new_linear_vel < 0){
+        new_linear_vel = 0;
+        if(new_angular_vel < 0)
+            new_angular_vel -= 0.5;
+        if(new_angular_vel > 0)
+            new_angular_vel += 0.5;
+    }
     //VELOCIDADE MAXIMA
     if(abs(new_linear_vel) > VELOCIDADE_MAXIMA_LINEAR ){
         new_linear_vel = VELOCIDADE_MAXIMA_LINEAR;
