@@ -4,9 +4,11 @@
 #include <list>
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string>
 
 #define LARGURA_MAPA 120
 #define ALTURA_MAPA 120
@@ -16,6 +18,7 @@
 #define OBSTACULO   -1
 #define LIVRE   1
 #define RANGE_MAXIMO_LAZER   30.0
+#define PATH_PASTA "/home/caju/catkin_ws/src/fcr2017/maps/mapaTopologico/"
 
 using namespace std;
 
@@ -44,21 +47,27 @@ class  Cell{
 
 class  MapaLocal{
     private:
-        double      xRobo;
-        double      yRobo;
+        double      xCentro;
+        double      yCentro;
         int         distanciaAux;
+        int         xRobo;
+        int         yRobo;
+        int         id;
         int         larguraMapa;
         int         alturaMapa;
         Cell        **Dados ;
         bool        isRobo;
+        FILE        *fp ;
     public:
-        MapaLocal(const int larguraMapa,const  int alturaMapa);
+        MapaLocal(const int larguraMapa,const  int alturaMapa,int id , double xCentro, double yCentro);
         ~MapaLocal();
         void printMapa();
-        void setRoboPosicao(int x, int y);
+        void setRoboPosicao(double x,double y);
         void setInfoCell(double angulo,double distancia );
+        void eliminaRobo();
         int getLargura();
         int getAltura();     
+        bool estaNoMapa(double x,double y);
 
 };
 

@@ -109,6 +109,11 @@ list<Node*> *Grafo::algoritmoDijkstra(int idCorrente,int idAlvo){
     list<Node*> *vizinhosVisitado ;
     Node *nodeCorrente;
     double distanciaAux = 0;
+    // CASO JA ESTEJA NO NODE 
+    if(idCorrente == idAlvo){
+        caminho->push_front(this->getNode(idCorrente));
+        return caminho;
+    }
     //seta todos os nodes nao visitados e distancia tentada ifinita 
     for (list<Node*>::iterator it=listaNodes.begin();it!=listaNodes.end();++it){
        (*it)->setVisitado(false);
@@ -203,8 +208,10 @@ Node::Node(int id, double x, double y,double larguraMapa, double alturaMapa){
     this->id = id;
     this->x = x;
     this->y = y;  
+    this->limiteHorizontal = (int)larguraMapa;
+    this->limiteVertical = (int)alturaMapa;
     this->vizinhos = new list<Aresta*>;
-    this->mapa = new MapaLocal(larguraMapa,alturaMapa);
+    this->mapa = new MapaLocal(larguraMapa,alturaMapa,id,x,y);
     //vizinhos.push_back(arestaVizinha);
 }
 

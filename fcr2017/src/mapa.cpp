@@ -1,32 +1,46 @@
 #include "fcr2017/mapa.h"
 
 
-MapaLocal::MapaLocal(const int larguraMapa,const  int alturaMapa){
-	this->Dados = new Cell *[larguraMapa];
-	for(int y = 0; y < larguraMapa; y++){
-		this->Dados[y] = new Cell[alturaMapa];
+MapaLocal::MapaLocal(const int larguraMapa,const  int alturaMapa,int id , double xCentro, double yCentro){
+	this->Dados = new Cell *[alturaMapa];
+	for(int y = 0; y < alturaMapa; y++){
+		this->Dados[y] = new Cell[larguraMapa];
 	}
 	this->larguraMapa = larguraMapa;
 	this->alturaMapa = alturaMapa;
+	this->xRobo = -1;
+	this->yRobo = -1;
+	this->xCentro = xCentro;
+	this->yCentro = yCentro;
+	this->id = id;
 }
 
 
 void MapaLocal::printMapa(){
-	FILE *fp = fopen("/home/caju/catkin_ws/src/mapeamento_gazebo/src/mapa.txt","w");
-	cout << "\t #### PRINTANDO MAPA ERRO ?" << fp << "\n";
+	/*debug*///cout << "\t #### PRINTANDO MAPA ERRO ?" << fp << "\n";
+	std::string arg ;	
+	// 5. with IOStreams
+	std::stringstream sstm;
+	sstm << PATH_PASTA <<  this->id << ".txt";
+	arg = sstm.str();
+	this->fp = fopen(arg.c_str(),"w");
 	if(fp != NULL){
-		for(int y = 0; y < this->larguraMapa; y++){
-			for(int x = 0; x < this->alturaMapa; x++){
+		for(int y =  this->alturaMapa-1; y >= 0; y--){
+			for(int x = 0; x < this->larguraMapa; x++){
 			  //if((y % 2 == 0 && x % 2 == 0) || (y % 2 == 1 && x % 2 == 1)){
 			    //cellArray[y][x] = new Cell(pos);
 			    //cellArray[y][x].index =  (y*LARGURA) +x;
-			    fprintf(fp,"%d ",Dados[x][y].getInfo());
-			    cout << "\tx ="<< x << ",y ="<< y <<"\t valor =" << Dados[x][y].getInfo() <<"\n" ;
+			    fprintf(fp,"%d\t",Dados[y][x].getInfo());
+			    /*debug*///cout << "\tx ="<< x << ",y ="<< y <<"\t valor =" << Dados[x][y].getInfo() <<"\n" ;
 		  	}
 		  	fprintf(fp,"\n");
 		}
-	}
 	fclose(fp);
+	}else{
+		cout << "\t nao consegui abrir! ="<< arg <<"\n";
+	}
+	/*debug*///cout << "\t #### PRINTEI SEM ERRO! \n";
+	return;
 }
 
 MapaLocal::~MapaLocal(){
@@ -34,6 +48,7 @@ MapaLocal::~MapaLocal(){
 		delete [] this->Dados[y];
 	}
 	delete [] this->Dados;
+	fclose(this->fp);
 
 }
 
@@ -46,11 +61,76 @@ int MapaLocal::getAltura(){
 }
 
 
-void MapaLocal::setRoboPosicao(int x, int y){
-	this->Dados[y][x].setIsRobo(true);
-	this->Dados[y][x].setInfo(POSICAO_ROBO);
-	this->xRobo = x;
-	this->yRobo = y;
+void MapaLocal::eliminaRobo(){
+	this->Dados[(int)this->yRobo][(int)this->xRobo].setIsRobo(false);
+	this->Dados[(int)this->yRobo][(int)this->xRobo].setInfo(LIVRE);
+	this->xRobo = -1;
+	this->yRobo = -1;
+	this->printMapa();
+	return ;
+}
+
+
+bool MapaLocal::estaNoMapa(double x,double y){
+	// x auxiliar onde sera calculado onde esta o robo
+	// y auxiliar onde sera calculado onde esta o robo
+	// Teste se a largura e a altura devem ser consideradas negativas ou positivas
+	int xAux;
+	int yAux;
+	//cout <<"\t CENTRO [ "<< this->xCentro/0.5 <<"," << this->yCentro/0.5 << "]\t " <<(this->larguraMapa / 2)  <<(this->alturaMapa / 2) <<"\n" ;
+	xAux = (int)round( (x - this->xCentro)/ LADO_QUADRADO_MAPA + (this->larguraMapa / 2)-1 ) ;
+	yAux = (int)round(  (y - this->yCentro)/ LADO_QUADRADO_MAPA + (this->alturaMapa/2 ) -1 ) ;
+	if(xAux >= this->larguraMapa){
+		/*debug*/// cout << " \t DIREITA [x,y] = [" << xAux << "," << yAux << "]\n";
+		return false;
+	}
+	if(xAux < 0 ){
+		/*debug*/// cout << "\t ESQUERDA[x,y] = [" << xAux << "," << yAux << "]\n";
+		return false;
+	}
+	if(yAux >= this->alturaMapa){
+		/*debug*/// cout << "\t CIMA[x,y] = [" << xAux << "," << yAux << "]\n";
+		return false;
+	}
+	if(yAux < 0 ){
+		/*debug*/// cout << "\t BAIXO [x,y] = [" << xAux << "," << yAux << "]\n";
+		return false;
+	}
+	return true;
+}
+
+
+void MapaLocal::setRoboPosicao(double x,double y){
+	//CONVERSAO PARA POSICOES DA MATRIZ ATRAVES DA ODOMETRIA DO ROBO
+	// CASO O ROBO ESTEJA VINDO PELA PRIMEIRA VEZ
+	// TESTES DO LIMITE DO MAPA
+	// x auxiliar onde sera calculado onde esta o robo
+	// y auxiliar onde sera calculado onde esta o robo
+	// Teste se a largura e a altura devem ser consideradas negativas ou positivas
+	int xAux;
+	int yAux;
+	/*debug*///cout <<"\t CENTRO [ "<< this->xCentro <<"," << this->yCentro << "\n'" ;
+	xAux = (int)round( (x -this->xCentro)/ LADO_QUADRADO_MAPA + (this->larguraMapa / 2)-1 ) ;
+	yAux = (int)round(  (y - this->yCentro)/ LADO_QUADRADO_MAPA + (this->alturaMapa/2 ) -1 ) ;
+	/*debug*/////cout<< "\t matrix [x,y] = [" << xAux << "," << yAux <<"]";
+	/*debug*///cout<<	"\t odom.robo ["<< x<<","<<y << "]"<< " CONtAS = " << (this->larguraMapa/2)<<","<<(this->alturaMapa/2 ) << "Centro [" << this->xCentro / LADO_QUADRADO_MAPA << "," << this->yCentro/ LADO_QUADRADO_MAPA <<"]\n";
+	if(this->yRobo != -1 && this->xRobo != -1){
+		this->Dados[(int)this->yRobo][(int)this->xRobo].setIsRobo(false);
+		this->Dados[(int)this->yRobo][(int)this->xRobo].setInfo(LIVRE);
+	}
+	if(xAux >= larguraMapa)
+		xAux =larguraMapa -1;
+	if(yAux >= alturaMapa)
+		yAux = alturaMapa -1;
+	if(xAux < 0)
+		xAux = 0;
+	if(yAux < 0)
+		yAux = 0;
+	this->Dados[yAux][xAux].setIsRobo(true);
+	this->Dados[yAux][xAux].setInfo(POSICAO_ROBO);
+	this->xRobo = xAux;
+	this->yRobo = yAux;
+	this->printMapa();
 }
 
 
@@ -62,9 +142,9 @@ void MapaLocal::setInfoCell(double angulo,double distancia ){
 	double yComponente ;
 	int xMapa = -1 ;
 	int yMapa = -1 ;
-	bool ehObstaculo = distancia == RANGE_MAXIMO_LAZER? false : true;
-	cout <<"\t###SetInfo ang,dis" << angulo << distancia << "\n" ;
+	bool ehObstaculo ;
 	do{
+		/*debug*///cout <<"\t###SetInfo ang,dis" << angulo <<"," << distancia << "\n" ;
 		xComponente = distancia * cos(angulo);
 		yComponente = distancia * sin(angulo);
 		//Testa se a mudanca foi o suficiente para diminuir algum
@@ -74,27 +154,32 @@ void MapaLocal::setInfoCell(double angulo,double distancia ){
 			//Conversao dos pontos x e y
 			//Caso seja maior que os limites sete como o minimo ou o maximo
 			//PRIMEIRO X E DEPOIS Y
-			xMapa = this->xRobo +(double) xComponente/LADO_QUADRADO_MAPA;
-			yMapa = this->yRobo + (double)yComponente/LADO_QUADRADO_MAPA;
-			if(xMapa > this->larguraMapa)
-				xMapa = this->larguraMapa;
+			ehObstaculo = !estaNoMapa(xMapa, yMapa) || distancia == RANGE_MAXIMO_LAZER? false : true;
+			xMapa = round(this->xRobo +(double) xComponente/LADO_QUADRADO_MAPA);
+			yMapa = round(this->yRobo + (double)yComponente/LADO_QUADRADO_MAPA);
+			/*debug*///cout << "\nx,y =" << xMapa<< "," << yMapa  << "\n";
+			if(xMapa >= this->larguraMapa)
+				xMapa = this->larguraMapa-1  ;
 			if(xMapa < 0 )
 				xMapa = 0;
-			if(yMapa > this->alturaMapa)
-				xMapa = this->alturaMapa;
+			if(yMapa >= this->alturaMapa)
+				yMapa = this->alturaMapa-1;
 			if(yMapa < 0 )
 				yMapa = 0;	
-			if(( !this->Dados[yMapa][xMapa].ehRobo() )) {
+			if( !this->Dados[yMapa][xMapa].ehRobo() ) {
 				if(ehObstaculo ){
+					/*debug*///cout << "\t botei OBSTACULO \n" ;
 					this->Dados[yMapa][xMapa].setInfo(OBSTACULO);
 					ehObstaculo =false;
 				}
-				else if(this->Dados[yMapa][xMapa].getInfo() != OBSTACULO){
+				else{ //if(this->Dados[yMapa][xMapa].getInfo() != OBSTACULO){
+					/*debug*///cout << "\t botei LIVRE \n" ;
 					this->Dados[yMapa][xMapa].setInfo(LIVRE);
 				}
 			}
 		}
-		distancia -= LADO_QUADRADO_MAPA;
+		distancia -= LADO_QUADRADO_MAPA*2;
+		/*debug*///cout <<"\t###Interacao ang,dis" << angulo <<"," << distancia << "\n" ;
 	}while(distancia > 0 );
 }
 
@@ -120,6 +205,8 @@ void Cell::setInfo(int info){
 void Cell::setIsRobo(bool valor){
 	this->isRobo = valor;
 }
+
+
 
 bool Cell::ehRobo(){
 	return this->isRobo ;

@@ -18,6 +18,26 @@ void Mapeamento::setParametros(float x,float y){
     this->y_desejado = y;
 }
 
+void Mapeamento::mostrarMapa(int nroMapa){
+     pid_t pID = fork();
+     //PROCESSO FILHO  E O ULTIMO ELSE E O PAI DO PROCESSO
+    if (pID == 0){  
+        //COMECA A EXECUTAR
+        std::stringstream sstm;
+        sstm << "java "<< PATH_PASTA <<  "gui node" <<  nroMapa << ".txt";
+        std::string arg = sstm.str();   
+        execl( arg.c_str() , (char *) 0); 
+    }
+    else if (pID < 0){            // failed to fork
+        cerr << "Falhou no fork" << endl;
+        exit(1);
+        // Throw exception
+    }
+    else{                                   // parent
+      return ;
+    }
+}
+
 
 void Mapeamento::laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_msg)
 {
@@ -91,22 +111,18 @@ bool Mapeamento::navegarGrafo(){
         final_state2 = true;
     }
     //EVITANDO A RE
-    if(new_linear_vel < 0){
+    if(new_linear_vel <= 0){
         new_linear_vel = 0;
-        if(new_angular_vel < 0)
+        if(new_angular_vel <= 0)
             new_angular_vel -= 0.5;
         if(new_angular_vel > 0)
             new_angular_vel += 0.5;
     }
-    //VELOCIDADE MAXIMA
-    if(abs(new_linear_vel) > VELOCIDADE_MAXIMA_LINEAR ){
-        new_linear_vel = VELOCIDADE_MAXIMA_LINEAR;
-    }
-    if(abs(new_angular_vel) > VELOCIDADE_MAXIMA_ANGULAR){
-        new_angular_vel = VELOCIDADE_MAXIMA_ANGULAR;
-    }
+
+
     this->command_vel_.linear.x = new_linear_vel ;
     this->command_vel_.angular.z = new_angular_vel ;    
+
     if(final_state1 && final_state2)
         return true;
     else
@@ -134,7 +150,9 @@ void Mapeamento::desvieObstaculo(){
       /*debug*///cout <<"\t range ="<<  this->scan_msg_.ranges[i]<< "\t angulo = " <<  (this->scan_msg_.angle_min + ( i * this->scan_msg_.angle_increment )*180 )
       //                                                          / M_PI <<" \n";
       // Testa se eh a minima distancia e esta no intervalor ainda do subgrupo
-      if(min_distancia > this->scan_msg_.ranges[i] && j < ANGULOS_POR_GRUPO){
+      if(   this->scan_msg_.ranges[i] >= this->scan_msg_.range_min  &&  this->scan_msg_.ranges[i] <= this->scan_msg_.range_max &&
+            min_distancia > this->scan_msg_.ranges[i] 
+            && j < ANGULOS_POR_GRUPO){
         min_distancia = this->scan_msg_.ranges[i];
         min_index = i;
       }
@@ -146,7 +164,7 @@ void Mapeamento::desvieObstaculo(){
             
         }else{
             Mapeamento::vetorResultante.somaVetorial(this->scan_msg_.angle_min + ( min_index * this->scan_msg_.angle_increment ),
-                                                pow(min_distancia,2),
+                                                sqrt(min_distancia),
                                                 true);            
         }
         if(min_distancia < RANGE_SEGURANCA_MAX){
@@ -170,9 +188,21 @@ void Mapeamento::desvieObstaculo(){
     //getchar();
     new_linear_vel = command_vel_.linear.x  - (e1sen + e2cos);
     new_angular_vel = command_vel_.angular.z  - (e1cos - e2sen) * RAIO_ROBO ;
-    //getchar();
+    if(new_linear_vel == 0 && new_angular_vel == 0){
+        if(rand() % 2 == 0)
+            new_angular_vel -= 0.5;
+        if(new_angular_vel > 0)
+            new_angular_vel += 0.5;
+    }
     if(emergence_state)
         emergence_coeficiente = 0;
+    /*
+    if(abs(new_angular_vel) > VELOCIDADE_MAXIMA_ANGULAR){
+        if (new_angular_vel < 0)
+            new_angular_vel = -VELOCIDADE_MAXIMA_ANGULAR;
+        if (new_angular_vel > 0)
+            new_angular_vel = -VELOCIDADE_MAXIMA_ANGULAR;
+    }*/
     command_vel_.linear.x = new_linear_vel * emergence_coeficiente ;
     command_vel_.angular.z = new_angular_vel ;
     /*
@@ -184,35 +214,42 @@ void Mapeamento::desvieObstaculo(){
 
 void Mapeamento::mapearNode(Node *nodeAtual){
     //Nro de angulos feito por uma conta simples
-    float nro_angulos = (this->scan_msg_.angle_max - this->scan_msg_.angle_min) / this->scan_msg_.angle_increment ;
     //Nro utilizado para eleger o minimo range em um subgrupo
-    float min_distancia = this->scan_msg_.range_max;
     // indices para ser feito a eleicao dos minimos em cada subgrupo
+    //boolean
+    float nro_angulos = (this->scan_msg_.angle_max - this->scan_msg_.angle_min) / this->scan_msg_.angle_increment ;
+    float min_distancia = this->scan_msg_.range_max;
     int j = 0;
     int min_index = -1;
     int emergence_coeficiente = 1;
-    //boolean
     bool emergence_state = false;
     //Feito para nao quebrar o codigo
-    for (int i = 0; i < nro_angulos ; ++i ,++j){
+    for (int i = 0; i < nro_angulos ; i+=48 ,++j){
         /*debug*///cout <<"\t range ="<<  this->scan_msg_.ranges[i]<< "\t angulo = " <<  (this->scan_msg_.angle_min + ( i * this->scan_msg_.angle_increment )*180 )
           //                                                          / M_PI <<" \n";
           // Testa se eh a minima distancia e esta no intervalor ainda do subgrupo
-        if(min_distancia > this->scan_msg_.ranges[i] && j < ANGULOS_POR_GRUPO){
+        /*if(min_distancia > this->scan_msg_.ranges[i] && j < ANGULOS_POR_GRUPO){
             min_distancia = this->scan_msg_.ranges[i];
             min_index = i;
         }
         else if( j >= ANGULOS_POR_GRUPO){
-            /*debug*/cout << "\t Setei angulo , distancia ="<< this->scan_msg_.angle_min + ( min_index * this->scan_msg_.angle_increment )<<","<<this->scan_msg_.ranges[min_index]<<"\n" ;
-            nodeAtual->mapa->setInfoCell(this->scan_msg_.ranges[min_index],this->scan_msg_.angle_min + ( min_index * this->scan_msg_.angle_increment ));   
+            */
+            /*debug*///cout << "\t Setei angulo , distancia ="<< this->scan_msg_.angle_min + ( i * this->scan_msg_.angle_increment )<<","<<this->scan_msg_.ranges[i]<<"\n" ;
+            if(this->scan_msg_.ranges[i] >= this->scan_msg_.range_min  &&  this->scan_msg_.ranges[i] <= this->scan_msg_.range_max )
+                nodeAtual->mapa->setInfoCell(this->scan_msg_.angle_min + ( i * this->scan_msg_.angle_increment ),this->scan_msg_.ranges[i]);   
             j  = 0;
             min_distancia = this->scan_msg_.range_max;
-        }
+        //}
     }
     nodeAtual->mapa->printMapa();
-    getchar();
     return;
    
+}
+
+void Mapeamento::pararRobo(){
+    command_vel_.linear.x = 0 ;
+    command_vel_.angular.z = 0 ;
+    vel_pub_.publish(command_vel_);
 }
 
 void Mapeamento::spin(){
@@ -229,7 +266,9 @@ void Mapeamento::spin(){
     Grafo g1;
     Node *nodeAlvo, *nodeAtual ;
     list<Node*> *caminho;
+    list<int> *explorarCic = new list<int>;
     bool chegou ;
+    bool debug =false;
     int id1= 0, id2 = 0,idInicio = NODE_INICIAL ;
     ros::NodeHandle n;
     //Tratamento arquivo Nodes!
@@ -252,18 +291,34 @@ void Mapeamento::spin(){
     }
     //Configuracao FRAME RATE
     //INICIALIZACAO NODE ATUAL
-    //Seta posicao inicial do robo
-    //ENTRADA DE USUARIO
+    //Iniciando a lista de caminho!
     ros::Rate loop_rate(10);
     nodeAtual = g1.getNode(NODE_INICIAL) ;
-    nodeAtual->mapa->setRoboPosicao( nodeAtual->mapa->getLargura()/2, nodeAtual->mapa->getAltura()/2);
-    printf("\tDigite o id do ponto \n");
-    scanf("%lf",&x_arg);
-    do{
+    explorarCic->push_back(9);
+    explorarCic->push_back(1);
+    explorarCic->push_back(2);
+    explorarCic->push_back(3);
+    explorarCic->push_back(5);
+    explorarCic->push_back(6);
+    explorarCic->push_back(8);
+    explorarCic->push_back(7);
+    explorarCic->push_back(10);
+    explorarCic->push_back(14);
+    explorarCic->push_back(13);
+    explorarCic->push_back(12);
+    explorarCic->push_back(4);
+    explorarCic->push_back(14);
+    explorarCic->push_back(16);
+    explorarCic->push_back(17);
+    explorarCic->push_back(18);
+    explorarCic->push_back(15);
+    printf("\tComecando a percorrer o CIC...\n\t");
+    while(!explorarCic->empty()){
+        // USA DIJKSTRA para pegar uma lista de nodes que sao o melhor caminho
+        // TRATAMENTO CASO JA ESTEJA NO PONTO
         //LOOP DE IR PONTO A PONTO
         //PEGA O NODE ALVO PARA IR PARA O ALGORITMO
-        // USA DIJKSTRA para pegar uma lista de nodes que sao o melhor caminho
-        caminho = g1.algoritmoDijkstra(nodeAtual->getId(),x_arg);
+        caminho = g1.algoritmoDijkstra(nodeAtual->getId(),explorarCic->front());
         while(!caminho->empty()){
             /*DEBUG*///nodeAlvo->getNodesVizinhos();
             //Pega as coordenandas do node corrente alvo
@@ -273,31 +328,53 @@ void Mapeamento::spin(){
             nodeAlvo = g1.getNode(caminho->front()->getId());
             this->setParametros(nodeAlvo->getx(),nodeAlvo->gety());
             chegou = false; 
-            cout << "\t Indo para "<< caminho->front()->getId()<<"...\n";
+            cout << "\t Indo para "<< nodeAlvo->getId()<<"...\n";
             while(ros::ok() && !chegou){
                 //spin uma vez no contexto da simulacao
+                //Verifica-se eainda esta no mapa do node atual ou se eh necessario mudar
+                //Seta posicao inicial ATRAVES DE UMA REGRA DE 3
+                //Calcular o setparametros base mais 
                 //Mapeie onde voce esta no node
                 //Executa andar ate o proximo passo se nao chegou
                 //Desvie os obstaculos
                 //publicar
                 ros::spinOnce();
-                mapearNode(nodeAtual);
-                /*if(!chegou) 
+                if(!nodeAtual->mapa->estaNoMapa(this->pose_msg_.pose.pose.position.x , this->pose_msg_.pose.pose.position.y)){
+                    cout << "\t ######### MUDANDO DO " << nodeAtual->getId() << "PARA "<< nodeAlvo->getId() <<"###########\n";
+                    nodeAtual->mapa->eliminaRobo();
+                    nodeAtual = g1.getNode(nodeAlvo->getId());
+                    cout << "\t ######### MUDEI PRO " << nodeAlvo->getId() <<"###########\n";
+                }
+                nodeAtual->mapa->setRoboPosicao( this->pose_msg_.pose.pose.position.x , this->pose_msg_.pose.pose.position.y );
+                //mapearNode(nodeAtual);
+                if(!chegou) 
                     chegou = navegarGrafo();
                 desvieObstaculo();
+                limitarVelocidade();
                 vel_pub_.publish(command_vel_);
-                */loop_rate.sleep();
+                loop_rate.sleep();
             }
-            nodeAtual = caminho->front();
+            cout << "\tCheguei no centro do node "<< nodeAlvo->getId() << "\t Node Atual"<< nodeAtual->getId() <<"\n"; 
             caminho->pop_front();
         }
-        //P
-        printf("\tDigite o id do ponto \n");
-        scanf("%lf",&x_arg);
-    }while(x_arg >0 && x_arg < 24);
-
+        explorarCic->pop_front();
+    }
+    // PARA O ROBO
+    this->pararRobo();
+    cout << "\t ############# FIM MAPEAMENTO ##########\n";
 }
 
 Mapeamento::~Mapeamento()
 {
+}
+
+void Mapeamento::limitarVelocidade(){
+
+    //VELOCIDADE MAXIMA
+    if(abs(command_vel_.linear.x) > VELOCIDADE_MAXIMA_LINEAR ){
+        command_vel_.linear.x = VELOCIDADE_MAXIMA_LINEAR;
+    }//VELOCIDADE MINIMA
+    if(abs(command_vel_.linear.x) < VELOCIDADE_MAXIMA_LINEAR/4 && abs(command_vel_.linear.x) != 0  ){
+        command_vel_.linear.x = VELOCIDADE_MAXIMA_LINEAR/4;
+    }
 }

@@ -26,6 +26,8 @@ class  Node{
         int id;
         double x;
         double y;
+        int limiteHorizontal;
+        int limiteVertical;
         bool visitado;
         double distanciaTentada;
     public:

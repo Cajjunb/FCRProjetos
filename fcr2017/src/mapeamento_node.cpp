@@ -10,4 +10,5 @@ int main(int argc, char** argv){
     ros::NodeHandle n;
     Mapeamento obsavoidance(n);
     obsavoidance.spin();
+
 }

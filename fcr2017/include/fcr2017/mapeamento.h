@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <vector>
 #include <string>
+#include <stdlib.h>     /* srand, rand */
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <geometry_msgs/Twist.h>
@@ -25,13 +26,13 @@
 #define ANGULOS_POR_GRUPO 40
 #define NRO_GRUPOS 18
 #define TEMPO_POR_SPIN 0.005
-#define CONSTANTE_FORCA 20
-#define CONSTANTE_DESVIO 2.7
-#define VELOCIDADE_MAXIMA_LINEAR 10
-#define VELOCIDADE_MAXIMA_ANGULAR 4
+#define CONSTANTE_FORCA 11
+#define CONSTANTE_DESVIO 1.255
+#define VELOCIDADE_MAXIMA_LINEAR 2
+#define VELOCIDADE_MAXIMA_ANGULAR 0.5
 #define PESO_ROBO 1
 #define RAIO_ROBO 1.4
-#define RANGE_ERRO 0.1
+#define RANGE_ERRO 0.09
 #define NODE_INICIAL 6
 #define RANGE_SEGURANCA_MAX 0.5
 #define RANGE_SEGURANCA_MIN 2.0
@@ -46,13 +47,13 @@ public:
     void setParametros(float x,float y);
     Mapeamento(ros::NodeHandle nh);
     ~Mapeamento();
+    ros::Publisher vel_pub_;
+    geometry_msgs::Twist command_vel_, desired_vel_;
 
 private:
     ros::NodeHandle nh_;
-    ros::Publisher vel_pub_;
     ros::Subscriber laser_sub_, sonar_sub_, pose_sub_, dsr_sub_;
 
-    geometry_msgs::Twist command_vel_, desired_vel_;
     sensor_msgs::LaserScan scan_msg_;
     p2os_msgs::SonarArray sonar_msg_;
     nav_msgs::Odometry pose_msg_;
@@ -66,11 +67,12 @@ private:
     void sonarCallback(const p2os_msgs::SonarArray::ConstPtr& sonar_msg);
     void dsrCallback(const geometry_msgs::Twist::ConstPtr& desired_vel);
     void poseCallback(const nav_msgs::Odometry::ConstPtr& pose_msg);
-
+    void pararRobo();
+    void limitarVelocidade();
+    void mostrarMapa(int nroMapa);
+    
     bool navegarGrafo();
     void desvieObstaculo();
     void mapearNode(Node *nodeAtual);
 };
-
-
 #endif
