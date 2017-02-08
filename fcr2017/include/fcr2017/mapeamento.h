@@ -2,6 +2,7 @@
 #ifndef MOD_MAP
 #define MOD_MAP
 #include <stdio.h>
+#include <signal.h>
 #include <vector>
 #include <string>
 #include <stdlib.h>     /* srand, rand */
@@ -26,16 +27,16 @@
 #define ANGULOS_POR_GRUPO 40
 #define NRO_GRUPOS 18
 #define TEMPO_POR_SPIN 0.005
-#define CONSTANTE_FORCA 11
-#define CONSTANTE_DESVIO 1.255
-#define VELOCIDADE_MAXIMA_LINEAR 2
-#define VELOCIDADE_MAXIMA_ANGULAR 0.5
+#define CONSTANTE_FORCA 9
+#define CONSTANTE_DESVIO 1
+#define VELOCIDADE_MAXIMA_LINEAR 1.0
+#define VELOCIDADE_MAXIMA_ANGULAR 0.8
 #define PESO_ROBO 1
-#define RAIO_ROBO 1.4
-#define RANGE_ERRO 0.09
+#define RAIO_ROBO 0.5
+#define RANGE_ERRO 0.03
 #define NODE_INICIAL 6
 #define RANGE_SEGURANCA_MAX 0.5
-#define RANGE_SEGURANCA_MIN 2.0
+#define RANGE_SEGURANCA_MIN 1.5
 
 using namespace std;
 
@@ -73,6 +74,6 @@ private:
     
     bool navegarGrafo();
     void desvieObstaculo();
-    void mapearNode(Node *nodeAtual);
+    void mapearNode(Node *nodeAtual,double yaw);
 };
 #endif

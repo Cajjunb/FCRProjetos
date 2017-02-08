@@ -23,18 +23,24 @@ void Mapeamento::mostrarMapa(int nroMapa){
      //PROCESSO FILHO  E O ULTIMO ELSE E O PAI DO PROCESSO
     if (pID == 0){  
         //COMECA A EXECUTAR
-        std::stringstream sstm;
-        sstm << "java "<< PATH_PASTA <<  "gui node" <<  nroMapa << ".txt";
-        std::string arg = sstm.str();   
-        execl( arg.c_str() , (char *) 0); 
+        //Concatena os argumentos para ser utilizado o chamado no sistema
+        //Executa uma operacao no bash
+        // Termina o processo filho 
+        std::stringstream sstm,sstm2;
+        sstm << PATH_PASTA << "mostraMapa.jar " <<PATH_PASTA<<"node" <<  nroMapa << ".txt" << " &";
+        std::string arg = sstm.str();
+        system(arg.c_str());
+        exit(0);
     }
     else if (pID < 0){            // failed to fork
         cerr << "Falhou no fork" << endl;
-        exit(1);
+        exit(0);
         // Throw exception
     }
     else{                                   // parent
-      return ;
+        //Continue o processo filho caso nao tenha comecao
+        kill(pID,SIGCONT);
+        return ;
     }
 }
 
@@ -59,11 +65,15 @@ void Mapeamento::sonarCallback(const p2os_msgs::SonarArray::ConstPtr& sonar_msg)
 
 bool Mapeamento::navegarGrafo(){
     //Velocidades lineares e angulares novas
-    double new_linear_vel;
-    double new_angular_vel ;
     //Nro utilizado para calcular o modulo da forca
     //Nro utilizado para calcular o modulo da acelaracao,
     //Velocidade utilizado mod_x e Velocidade utilizado mod_y
+    //Velocidade utilizado costheta cateto adjacente , Velocidade utilizado costheta e distancia entre pontos
+    // ANGULO de odometria do robo yaw
+    //Nro utilizado para calcular o modulo da acelaracao
+    //boolean
+    double new_linear_vel;
+    double new_angular_vel ;
     double mod_v_x_robo;
     double mod_v_y_robo;
     double mod_forca ;
@@ -71,36 +81,26 @@ bool Mapeamento::navegarGrafo(){
     double catetoAdjascente  =  y_desejado - this->pose_msg_.pose.pose.position.y  ;
     double catetoOposto      =  x_desejado - this->pose_msg_.pose.pose.position.x  ;
     double hipotenusa        = sqrt(pow(catetoOposto,2)+pow(catetoAdjascente,2));
-    //Velocidade utilizado costheta cateto adjacente , Velocidade utilizado costheta e distancia entre pontos
-    // ANGULO de odometria do robo yaw
     double costheta = catetoAdjascente / hipotenusa  ;
     double sentheta = catetoOposto / hipotenusa  ;
     double yaw = tf::getYaw(this->pose_msg_.pose.pose.orientation);
-    //Nro utilizado para calcular o modulo da acelaracao
-    //boolean
     double aux;
     bool final_state1 = false;
     bool final_state2 = false;
     //Calcular a distancia entre o ponto desejado e o do robo
+    //Calculado mod_forca
+    //Calculadno mod_aceleracao f = m*a
+    //Calculando a velocidade linear
+    //Calculando a velocidade angular
     aux = pow(x_desejado - this->pose_msg_.pose.pose.position.x,2 );
     aux += pow(y_desejado - this->pose_msg_.pose.pose.position.y,2);
-    //Calculado mod_forca
     mod_forca = sqrt(aux) * CONSTANTE_FORCA ;
-    //Calculadno mod_aceleracao f = m*a
     mod_aceleracao = mod_forca / PESO_ROBO;
-    //Calculando a velocidade linear
     mod_v_x_robo = mod_aceleracao * costheta * TEMPO_POR_SPIN;
-    //Calculando a velocidade angular
     mod_v_y_robo = mod_aceleracao * sentheta * TEMPO_POR_SPIN;
 
     new_linear_vel = desired_vel_.linear.x + mod_v_x_robo * sin(yaw) + mod_v_y_robo * cos(yaw);
     new_angular_vel = desired_vel_.angular.z + mod_v_x_robo * cos(yaw) - mod_v_y_robo * sin(yaw) * RAIO_ROBO;
-    //getchar();
-
-
-    /*debug*///cout <<"\tvlin = "<< new_linear_vel <<"\n" ;
-    /*debug*///cout <<"\tvang = "<< new_angular_vel <<"\n" ;
-
     //CHEGOU NO PONTO
     if(abs(new_linear_vel) < RANGE_ERRO ){
         new_linear_vel = 0;
@@ -118,11 +118,8 @@ bool Mapeamento::navegarGrafo(){
         if(new_angular_vel > 0)
             new_angular_vel += 0.5;
     }
-
-
     this->command_vel_.linear.x = new_linear_vel ;
     this->command_vel_.angular.z = new_angular_vel ;    
-
     if(final_state1 && final_state2)
         return true;
     else
@@ -164,7 +161,7 @@ void Mapeamento::desvieObstaculo(){
             
         }else{
             Mapeamento::vetorResultante.somaVetorial(this->scan_msg_.angle_min + ( min_index * this->scan_msg_.angle_increment ),
-                                                sqrt(min_distancia),
+                                                sqrt(sqrt(sqrt(min_distancia))),
                                                 true);            
         }
         if(min_distancia < RANGE_SEGURANCA_MAX){
@@ -212,7 +209,7 @@ void Mapeamento::desvieObstaculo(){
     */
 }
 
-void Mapeamento::mapearNode(Node *nodeAtual){
+void Mapeamento::mapearNode(Node *nodeAtual,double yaw){
     //Nro de angulos feito por uma conta simples
     //Nro utilizado para eleger o minimo range em um subgrupo
     // indices para ser feito a eleicao dos minimos em cada subgrupo
@@ -224,22 +221,10 @@ void Mapeamento::mapearNode(Node *nodeAtual){
     int emergence_coeficiente = 1;
     bool emergence_state = false;
     //Feito para nao quebrar o codigo
-    for (int i = 0; i < nro_angulos ; i+=48 ,++j){
-        /*debug*///cout <<"\t range ="<<  this->scan_msg_.ranges[i]<< "\t angulo = " <<  (this->scan_msg_.angle_min + ( i * this->scan_msg_.angle_increment )*180 )
-          //                                                          / M_PI <<" \n";
-          // Testa se eh a minima distancia e esta no intervalor ainda do subgrupo
-        /*if(min_distancia > this->scan_msg_.ranges[i] && j < ANGULOS_POR_GRUPO){
-            min_distancia = this->scan_msg_.ranges[i];
-            min_index = i;
-        }
-        else if( j >= ANGULOS_POR_GRUPO){
-            */
-            /*debug*///cout << "\t Setei angulo , distancia ="<< this->scan_msg_.angle_min + ( i * this->scan_msg_.angle_increment )<<","<<this->scan_msg_.ranges[i]<<"\n" ;
-            if(this->scan_msg_.ranges[i] >= this->scan_msg_.range_min  &&  this->scan_msg_.ranges[i] <= this->scan_msg_.range_max )
-                nodeAtual->mapa->setInfoCell(this->scan_msg_.angle_min + ( i * this->scan_msg_.angle_increment ),this->scan_msg_.ranges[i]);   
-            j  = 0;
-            min_distancia = this->scan_msg_.range_max;
-        //}
+    for (int i = 0; i < nro_angulos ; i+=8 ,++j){
+       if(this->scan_msg_.ranges[i] >= this->scan_msg_.range_min  &&  this->scan_msg_.ranges[i] <= this->scan_msg_.range_max )
+                nodeAtual->mapa->setInfoCell(   this->scan_msg_.angle_min + ( i * this->scan_msg_.angle_increment ) + yaw,
+                                                this->scan_msg_.ranges[i],this->scan_msg_.range_max);   
     }
     nodeAtual->mapa->printMapa();
     return;
@@ -255,6 +240,7 @@ void Mapeamento::pararRobo(){
 void Mapeamento::spin(){
     //Ponteiro de arquivo
     //Argumentos x e y para o algoritmo captado pelo grafo
+    //Funcao que recebe o angulo da orientacao do robo
     //GRAFO Geral
     //NODE ALVO AUXILIAR
     // Lista Caminho para o ir para o node escolhido
@@ -263,15 +249,19 @@ void Mapeamento::spin(){
     // ros handler
     FILE *fp;
     double x_arg, y_arg,larguraMapa,alturaMapa;
+    double yaw ;
     Grafo g1;
     Node *nodeAlvo, *nodeAtual ;
     list<Node*> *caminho;
     list<int> *explorarCic = new list<int>;
     bool chegou ;
+    bool mudou ;
     bool debug =false;
     int id1= 0, id2 = 0,idInicio = NODE_INICIAL ;
     ros::NodeHandle n;
+    
     //Tratamento arquivo Nodes!
+    //Tratamento arquivo ARESTAS!
     fp = fopen("/home/caju/catkin_ws/src/fcr2017/src/cic2.txt","r");
     if(fp == NULL){
         ROS_ERROR("\t NAO FOI ENCONTRADO O ARQUIVO DE GRAFO E MAP\n");
@@ -280,7 +270,6 @@ void Mapeamento::spin(){
     while( fscanf(fp,"%lf%*c%lf%*c%lf%*c%lf%*c",&x_arg,&y_arg,&larguraMapa,&alturaMapa) != EOF){
         g1.addNode(x_arg,y_arg,larguraMapa,alturaMapa);
     }
-    //Tratamento arquivo ARESTAS!
     fp = fopen("/home/caju/catkin_ws/src/fcr2017/src/cic2Arestas.txt","r");
     if(fp == NULL){
         ROS_ERROR("\t NAO FOI ENCONTRADO O ARQUIVO DE ARESTAS E MAP\n");
@@ -294,7 +283,7 @@ void Mapeamento::spin(){
     //Iniciando a lista de caminho!
     ros::Rate loop_rate(10);
     nodeAtual = g1.getNode(NODE_INICIAL) ;
-    explorarCic->push_back(9);
+/*  explorarCic->push_back(4);
     explorarCic->push_back(1);
     explorarCic->push_back(2);
     explorarCic->push_back(3);
@@ -306,12 +295,17 @@ void Mapeamento::spin(){
     explorarCic->push_back(14);
     explorarCic->push_back(13);
     explorarCic->push_back(12);
-    explorarCic->push_back(4);
+    explorarCic->push_back(9);
     explorarCic->push_back(14);
     explorarCic->push_back(16);
     explorarCic->push_back(17);
     explorarCic->push_back(18);
     explorarCic->push_back(15);
+*/  
+    explorarCic->push_back(9);
+    explorarCic->push_back(11);
+    explorarCic->push_back(12);
+    explorarCic->push_back(14);
     printf("\tComecando a percorrer o CIC...\n\t");
     while(!explorarCic->empty()){
         // USA DIJKSTRA para pegar uma lista de nodes que sao o melhor caminho
@@ -328,25 +322,30 @@ void Mapeamento::spin(){
             nodeAlvo = g1.getNode(caminho->front()->getId());
             this->setParametros(nodeAlvo->getx(),nodeAlvo->gety());
             chegou = false; 
+            mudou = false;
             cout << "\t Indo para "<< nodeAlvo->getId()<<"...\n";
             while(ros::ok() && !chegou){
                 //spin uma vez no contexto da simulacao
                 //Verifica-se eainda esta no mapa do node atual ou se eh necessario mudar
-                //Seta posicao inicial ATRAVES DE UMA REGRA DE 3
                 //Calcular o setparametros base mais 
                 //Mapeie onde voce esta no node
                 //Executa andar ate o proximo passo se nao chegou
                 //Desvie os obstaculos
                 //publicar
                 ros::spinOnce();
-                if(!nodeAtual->mapa->estaNoMapa(this->pose_msg_.pose.pose.position.x , this->pose_msg_.pose.pose.position.y)){
-                    cout << "\t ######### MUDANDO DO " << nodeAtual->getId() << "PARA "<< nodeAlvo->getId() <<"###########\n";
+                if(!nodeAtual->mapa->estaNoMapa(this->pose_msg_.pose.pose.position.x , this->pose_msg_.pose.pose.position.y) && !mudou){
+                    //Eliminar do mapa antigo o robo
+                    // Mostra o mapa antigo
+                    // Muda o mapa a ser mapeado para o proximo
                     nodeAtual->mapa->eliminaRobo();
+                    mostrarMapa(nodeAtual->getId());
                     nodeAtual = g1.getNode(nodeAlvo->getId());
-                    cout << "\t ######### MUDEI PRO " << nodeAlvo->getId() <<"###########\n";
+                    cout << "\t ############# MUDEI PRO " << nodeAlvo->getId() << " #############\n";
+                    mudou = true;
                 }
                 nodeAtual->mapa->setRoboPosicao( this->pose_msg_.pose.pose.position.x , this->pose_msg_.pose.pose.position.y );
-                //mapearNode(nodeAtual);
+                yaw = tf::getYaw(this->pose_msg_.pose.pose.orientation);
+                mapearNode(nodeAtual,yaw);
                 if(!chegou) 
                     chegou = navegarGrafo();
                 desvieObstaculo();
@@ -354,12 +353,14 @@ void Mapeamento::spin(){
                 vel_pub_.publish(command_vel_);
                 loop_rate.sleep();
             }
-            cout << "\tCheguei no centro do node "<< nodeAlvo->getId() << "\t Node Atual"<< nodeAtual->getId() <<"\n"; 
+            // 
+            cout << "\t############# Cheguei no centro do node #############"<< nodeAlvo->getId()  <<"\n"; 
             caminho->pop_front();
         }
         explorarCic->pop_front();
     }
-    // PARA O ROBO
+    //Mostra o ultimo mapa aonde o robo parou
+    mostrarMapa(nodeAtual->getId());  
     this->pararRobo();
     cout << "\t ############# FIM MAPEAMENTO ##########\n";
 }

@@ -34,14 +34,17 @@ class  Cell{
         int         distanciaAux;
         list<Cell*> vizinhos;
         bool        isRobo;
+        bool        isObstaculo;
     public:
         Cell();
         ~Cell();
         void setIsRobo(bool valor);
+        void setIsObstaculo(bool valor);
         void addVizinho(Cell* vizinho);
         void setInfo(int info);
         int getInfo();
         bool ehRobo();
+        bool ehObstaculo();
 
 };
 
@@ -63,7 +66,7 @@ class  MapaLocal{
         ~MapaLocal();
         void printMapa();
         void setRoboPosicao(double x,double y);
-        void setInfoCell(double angulo,double distancia );
+        void setInfoCell(double angulo,double distancia,double rangeMax );
         void eliminaRobo();
         int getLargura();
         int getAltura();     
