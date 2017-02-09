@@ -94,12 +94,14 @@ public class gui extends JFrame {
             int i = 0;
             int lines = 0;
             int columns = 0;
-            int aux = -1;
             String entradaString;
+            int aux = -1;
             columns = scanner.nextLine().split("\t").length;
             scanner = new Scanner(new File(arg));
-            panel.add(new Label(arg));
-            topPanel = new JPanel();        
+            topPanel = new JPanel();     
+            String[] bits = arg.split("/");
+            String lastOne = bits[bits.length-1];   
+            topPanel.add(new Label(lastOne));
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             setLocationRelativeTo(null);            
 
